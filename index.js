@@ -5,6 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const COOKIE = process.env.ROBLOSECURITY;
 
+// ✅ Home route to verify proxy is running
 app.get("/", (req, res) => {
   res.json({ ok: true, message: "Roblox Proxy is running ✅" });
 });
@@ -18,6 +19,7 @@ app.get("/gamesByUser/:userId", async (req, res) => {
     const response = await fetch(url, {
       headers: { Cookie: `.ROBLOSECURITY=${COOKIE}` },
     });
+
     const data = await response.json();
     res.json({ ok: true, data });
   } catch (err) {
@@ -25,15 +27,26 @@ app.get("/gamesByUser/:userId", async (req, res) => {
   }
 });
 
-// ✅ Get gamepasses by game (fixed)
+// ✅ Get gamepasses by game (auto converts placeId → universeId)
 app.get("/gamepassesByGame/:gameId", async (req, res) => {
   try {
     const { gameId } = req.params;
-    const url = `https://develop.roblox.com/v1/universes/${gameId}/game-passes`;
+
+    // Step 1: Convert placeId → universeId
+    const universeResponse = await fetch(
+      `https://apis.roblox.com/universes/v1/places/${gameId}/universe`,
+      { headers: { Cookie: `.ROBLOSECURITY=${COOKIE}` } }
+    );
+    const universeData = await universeResponse.json();
+    const universeId = universeData.universeId || gameId;
+
+    // Step 2: Get gamepasses from that universe
+    const url = `https://develop.roblox.com/v1/universes/${universeId}/game-passes`;
 
     const response = await fetch(url, {
       headers: { Cookie: `.ROBLOSECURITY=${COOKIE}` },
     });
+
     const data = await response.json();
     res.json({ ok: true, data });
   } catch (err) {
@@ -41,6 +54,7 @@ app.get("/gamepassesByGame/:gameId", async (req, res) => {
   }
 });
 
+// ✅ Start the proxy
 app.listen(PORT, () => {
-  console.log(`Proxy running on port ${PORT}`);
+  console.log(`✅ Roblox proxy running on port ${PORT}`);
 });
