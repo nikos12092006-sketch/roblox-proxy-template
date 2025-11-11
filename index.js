@@ -2,43 +2,45 @@ import express from "express";
 import fetch from "node-fetch";
 
 const app = express();
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
+const COOKIE = process.env.ROBLOSECURITY;
 
-const ROBLOX_COOKIE = process.env.ROBLOX_COOKIE;
+app.get("/", (req, res) => {
+  res.json({ ok: true, message: "Roblox Proxy is running ✅" });
+});
 
-async function robloxFetch(url) {
-  const res = await fetch(url, {
-    headers: {
-      Cookie: `.ROBLOSECURITY=${ROBLOX_COOKIE}`,
-      "User-Agent": "GamepassProxy/1"
-    }
-  });
-  return res.json();
-}
-
+// ✅ Get user's games
 app.get("/gamesByUser/:userId", async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const data = await robloxFetch(
-      `https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&sortOrder=Asc&limit=50`
-    );
+    const { userId } = req.params;
+    const url = `https://games.roblox.com/v2/users/${userId}/games?accessFilter=Public&sortOrder=Asc&limit=50`;
+
+    const response = await fetch(url, {
+      headers: { Cookie: `.ROBLOSECURITY=${COOKIE}` },
+    });
+    const data = await response.json();
     res.json({ ok: true, data });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
   }
 });
 
+// ✅ Get gamepasses by game (fixed)
 app.get("/gamepassesByGame/:gameId", async (req, res) => {
   try {
-    const gameId = req.params.gameId;
-    const data = await robloxFetch(
-      `https://games.roblox.com/v1/games/${gameId}/game-passes?limit=100&sortOrder=Asc`
-    );
+    const { gameId } = req.params;
+    const url = `https://develop.roblox.com/v1/universes/${gameId}/game-passes`;
+
+    const response = await fetch(url, {
+      headers: { Cookie: `.ROBLOSECURITY=${COOKIE}` },
+    });
+    const data = await response.json();
     res.json({ ok: true, data });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("✅ Proxy running on port", PORT));
+app.listen(PORT, () => {
+  console.log(`Proxy running on port ${PORT}`);
+});
